@@ -246,18 +246,31 @@ export class StatusLineComponent implements Component {
 				}
 			};
 			try {
-				// Requires `gh repo set-default` to be configured; fails gracefully if not
+				// First attempt: current repo has a PR for this branch directly
 				const result = await $`gh pr view --json number,url`.quiet().nothrow();
-				if (result.exitCode !== 0) {
-					setCachedPr(null);
-					return;
+				if (result.exitCode === 0) {
+					const pr = JSON.parse(result.stdout.toString()) as { number: number; url: string };
+					if (typeof pr.number === "number") {
+						setCachedPr({ number: pr.number, url: pr.url });
+						return;
+					}
 				}
-				const pr = JSON.parse(result.stdout.toString()) as { number: number; url: string };
-				if (typeof pr.number === "number") {
-					setCachedPr({ number: pr.number, url: pr.url });
-				} else {
-					setCachedPr(null);
+
+				// Fallback: PR may live on upstream repo with this branch as head (fork workflow).
+				// --search 'head:<branch>' finds cross-fork PRs; gh resolves repo from origin remote.
+				const branch = this.#getCurrentBranch();
+				if (branch) {
+					const listResult = await $`gh pr list --search ${`head:${branch}`} --json number,url --limit 1`.quiet().nothrow();
+					if (listResult.exitCode === 0) {
+						const prs = JSON.parse(listResult.stdout.toString()) as Array<{ number: number; url: string }>;
+						if (prs.length > 0 && typeof prs[0].number === "number") {
+							setCachedPr({ number: prs[0].number, url: prs[0].url });
+							return;
+						}
+					}
 				}
+
+				setCachedPr(null);
 			} catch {
 				setCachedPr(null);
 			} finally {
