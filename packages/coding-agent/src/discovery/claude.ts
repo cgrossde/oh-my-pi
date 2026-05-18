@@ -130,9 +130,9 @@ async function loadContextFiles(ctx: LoadContext): Promise<LoadResult<ContextFil
 	const items: ContextFile[] = [];
 	const warnings: string[] = [];
 
+	// User-level: ~/.claude/CLAUDE.md
 	const userBase = getUserClaude(ctx);
 	const userClaudeMd = path.join(userBase, "CLAUDE.md");
-
 	const userContent = await readFile(userClaudeMd);
 	if (userContent !== null) {
 		items.push({
@@ -143,18 +143,41 @@ async function loadContextFiles(ctx: LoadContext): Promise<LoadResult<ContextFil
 		});
 	}
 
-	const projectBase = getProjectClaude(ctx);
-	const projectClaudeMd = path.join(projectBase, "CLAUDE.md");
-	const projectContent = await readFile(projectClaudeMd);
-	if (projectContent !== null) {
-		const depth = calculateDepth(ctx.cwd, path.dirname(projectBase), path.sep);
-		items.push({
-			path: projectClaudeMd,
-			content: projectContent,
-			level: "project",
-			depth,
-			_source: createSourceMeta(PROVIDER_ID, projectClaudeMd, "project"),
-		});
+	// Project-level: walk up from cwd, checking both <dir>/.claude/CLAUDE.md and <dir>/CLAUDE.md.
+	// .claude/CLAUDE.md is checked first so it shadows a bare CLAUDE.md at the same depth
+	// (same deduplication key "project:<depth>", first-wins in priority order).
+	let current = ctx.cwd;
+	while (true) {
+		const configDirClaudeMd = path.join(current, CONFIG_DIR, "CLAUDE.md");
+		const bareCLAUDEMd = path.join(current, "CLAUDE.md");
+
+		const [configContent, bareContent] = await Promise.all([readFile(configDirClaudeMd), readFile(bareCLAUDEMd)]);
+
+		const depth = calculateDepth(ctx.cwd, current, path.sep);
+
+		if (configContent !== null) {
+			items.push({
+				path: configDirClaudeMd,
+				content: configContent,
+				level: "project",
+				depth,
+				_source: createSourceMeta(PROVIDER_ID, configDirClaudeMd, "project"),
+			});
+		}
+		if (bareContent !== null) {
+			items.push({
+				path: bareCLAUDEMd,
+				content: bareContent,
+				level: "project",
+				depth,
+				_source: createSourceMeta(PROVIDER_ID, bareCLAUDEMd, "project"),
+			});
+		}
+
+		if (current === (ctx.repoRoot ?? ctx.home)) break;
+		const parent = path.dirname(current);
+		if (parent === current) break;
+		current = parent;
 	}
 
 	return { items, warnings };
