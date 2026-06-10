@@ -465,6 +465,7 @@ behavior {
 		model "deepinfra/black-forest-labs/FLUX-2-pro"
 	}
 	role-defaults "web" {
+		model "web/sonar"
 		model "web/parallel"
 		model "web/hosted"
 		model "web/exa"

@@ -65,8 +65,9 @@ describe("default web chain", () => {
 			{ authStorage, modelRegistry, sessionModel: sessionModel("anthropic", "claude-sonnet-4-5") },
 		);
 
-		// The cheaper same-provider swap runs first; its failure falls back to the session model as-is.
-		expect(attempted.slice(0, 3)).toEqual([
+		// Sonar and Parallel are tried before the cheaper same-provider swap, which then falls back to the session model.
+		expect(attempted.slice(0, 4)).toEqual([
+			"web/sonar",
 			"web/parallel",
 			"anthropic/claude-haiku-4-5",
 			"anthropic/claude-sonnet-4-5",

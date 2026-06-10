@@ -12,6 +12,7 @@
 export const SEARCH_PROVIDER_LABELS = {
 	parallel: "Parallel",
 	perplexity: "Perplexity",
+	sonar: "Sonar Pro",
 	gemini: "Gemini",
 	anthropic: "Anthropic",
 	codex: "OpenAI Codex",
