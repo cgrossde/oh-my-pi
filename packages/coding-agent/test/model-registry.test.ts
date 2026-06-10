@@ -258,6 +258,7 @@ describe("ModelRegistry", () => {
 			expect(registry.find("local", "falcon-h1-90m")).toMatchObject({ kind: "tiny" });
 			expect(registry.find("web", "duckduckgo")).toMatchObject({ kind: "search" });
 			expect(registry.find("typesafe", "jev-latest")).toMatchObject({ kind: "judge" });
+			expect(registry.find("web", "sonar")).toMatchObject({ kind: "search" });
 		});
 
 		test("all and kind pools expose keyless runners and authenticated TypeSafe models", () => {
@@ -276,6 +277,7 @@ describe("ModelRegistry", () => {
 					expect.objectContaining({ provider: "local", id: "kokoro", kind: "tts" }),
 					expect.objectContaining({ provider: "local", id: "whisper-base", kind: "stt" }),
 					expect.objectContaining({ provider: "web", id: "duckduckgo", kind: "search" }),
+					expect.objectContaining({ provider: "web", id: "sonar", kind: "search" }),
 					expect.objectContaining({ provider: "typesafe", id: "jev-latest", kind: "judge" }),
 				]),
 			);
