@@ -17,6 +17,7 @@ type ProviderRegistry<TId extends string> = { [Id in TId]: ProviderLoader };
 
 const PROVIDER_LOADERS: ProviderRegistry<SearchEngineId> = {
 	perplexity: () => import("./providers/perplexity").then(m => new m.PerplexityProvider()),
+	sonar: () => import("./providers/sonar").then(m => new m.SonarProvider()),
 	zai: () => import("./providers/zai").then(m => new m.ZaiProvider()),
 	exa: () => import("./providers/exa").then(m => new m.ExaProvider()),
 	tinyfish: () => import("./providers/tinyfish").then(m => new m.TinyFishProvider()),

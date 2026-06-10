@@ -13,6 +13,13 @@ provider "web" {
 			limits
 			supports-tools #false
 		}
+		model "sonar" name="Sonar Pro" {
+			reasoning #false
+			input "text"
+			cost input=0 output=0 cache-read=0 cache-write=0
+			limits
+			supports-tools #false
+		}
 		model "parallel" name="Parallel" {
 			reasoning #false
 			input "text"

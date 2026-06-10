@@ -29,6 +29,47 @@ export const cfgExaSearchDelayMs = register({
 	},
 });
 
+// Sonar Pro (via LLM proxy)
+export const cfgSonarProxyUrl = register({
+	id: "sonar.proxyUrl",
+	type: "string",
+	default: undefined,
+	env: { name: "SONAR_PROXY_URL", fallback: "blank" },
+	ui: {
+		tab: "providers",
+		group: "Services",
+		label: "Sonar Proxy URL",
+		description: "LLM proxy base URL for Perplexity Sonar Pro (e.g. http://localhost:6655)",
+	},
+});
+
+export const cfgSonarApiKey = register({
+	id: "sonar.apiKey",
+	type: "string",
+	default: undefined,
+	env: { name: "SONAR_API_KEY", fallback: "blank" },
+	credential: true,
+	ui: {
+		tab: "providers",
+		group: "Services",
+		label: "Sonar API Key",
+		description: "Bearer token accepted by the LLM proxy",
+	},
+});
+
+export const cfgSonarModel = register({
+	id: "sonar.model",
+	type: "string",
+	default: undefined,
+	env: { name: "SONAR_MODEL", fallback: "blank" },
+	ui: {
+		tab: "providers",
+		group: "Services",
+		label: "Sonar Model",
+		description: "Model name forwarded to the proxy (default: sonar-pro)",
+	},
+});
+
 // SearXNG
 export const cfgSearxngEndpoint = register({
 	id: "searxng.endpoint",

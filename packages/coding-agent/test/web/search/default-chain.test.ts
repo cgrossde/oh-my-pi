@@ -79,8 +79,13 @@ describe("default web chain", () => {
 			{ authStorage, modelRegistry, sessionModel: sessionModel(host, sessionId) },
 		);
 
-		// The cheaper same-provider swap runs first; its failure falls back to the session model as-is.
-		expect(attempted.slice(0, 3)).toEqual(["web/parallel", `${host}/${searchId}`, `${host}/${sessionId}`]);
+		// Sonar and Parallel are tried before the cheaper same-provider swap, which then falls back to the session model.
+		expect(attempted.slice(0, 4)).toEqual([
+			"web/sonar",
+			"web/parallel",
+			`${host}/${searchId}`,
+			`${host}/${sessionId}`,
+		]);
 		expect(attempted.filter(selector => !selector.startsWith("web/"))).toEqual([
 			`${host}/${searchId}`,
 			`${host}/${sessionId}`,
