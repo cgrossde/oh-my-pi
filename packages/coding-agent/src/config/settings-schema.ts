@@ -3814,6 +3814,37 @@ export const SETTINGS_SCHEMA = {
 		},
 	},
 
+	// Sonar Pro (via LLM proxy)
+	"sonar.proxyUrl": {
+		type: "string",
+		default: undefined,
+		ui: {
+			tab: "providers",
+			label: "Sonar Proxy URL",
+			description: "LLM proxy base URL for Perplexity Sonar Pro (e.g. http://localhost:6655)",
+		},
+	},
+
+	"sonar.apiKey": {
+		type: "string",
+		default: undefined,
+		ui: {
+			tab: "providers",
+			label: "Sonar API Key",
+			description: "Bearer token accepted by the LLM proxy",
+		},
+	},
+
+	"sonar.model": {
+		type: "string",
+		default: undefined,
+		ui: {
+			tab: "providers",
+			label: "Sonar Model",
+			description: "Model name forwarded to the proxy (default: sonar-pro)",
+		},
+	},
+
 	// SearXNG
 	"searxng.endpoint": {
 		type: "string",

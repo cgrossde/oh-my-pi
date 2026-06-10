@@ -44,6 +44,11 @@ const PROVIDER_META: Record<SearchProviderId, ProviderMeta> = {
 		label: SEARCH_PROVIDER_LABELS.perplexity,
 		load: async () => new (await import("./providers/perplexity")).PerplexityProvider(),
 	},
+	sonar: {
+		id: "sonar",
+		label: SEARCH_PROVIDER_LABELS.sonar,
+		load: async () => new (await import("./providers/sonar")).SonarProvider(),
+	},
 	kimi: {
 		id: "kimi",
 		label: SEARCH_PROVIDER_LABELS.kimi,

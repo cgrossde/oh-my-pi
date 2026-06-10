@@ -7,6 +7,7 @@
 export const SEARCH_PROVIDER_ORDER = [
 	"tavily",
 	"perplexity",
+	"sonar",
 	"brave",
 	"jina",
 	"kimi",
@@ -38,6 +39,11 @@ export const SEARCH_PROVIDER_OPTIONS = [
 		label: "Perplexity",
 		description: "Uses auth when configured; explicit selection falls back to anonymous search",
 	},
+	{
+		value: "sonar",
+		label: "Sonar Pro",
+		description: "Perplexity Sonar Pro via LLM proxy (requires sonar.proxyUrl and sonar.apiKey)",
+	},
 	{ value: "brave", label: "Brave", description: "Requires BRAVE_API_KEY" },
 	{ value: "jina", label: "Jina", description: "Requires JINA_API_KEY" },
 	{ value: "kimi", label: "Kimi", description: "Requires MOONSHOT_SEARCH_API_KEY or MOONSHOT_API_KEY" },
@@ -67,6 +73,7 @@ export const SEARCH_PROVIDER_OPTIONS = [
 export const SEARCH_PROVIDER_LABELS: Record<SearchProviderId, string> = {
 	tavily: "Tavily",
 	perplexity: "Perplexity",
+	sonar: "Sonar Pro",
 	brave: "Brave",
 	jina: "Jina",
 	kimi: "Kimi",
