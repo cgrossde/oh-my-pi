@@ -38,7 +38,7 @@ export function buildAnthropicCompat(spec: ModelSpec<"anthropic-messages">): Res
 		officialEndpoint: official,
 		disableStrictTools: false,
 		disableAdaptiveThinking: false,
-		supportsEagerToolInputStreaming: true,
+		supportsEagerToolInputStreaming: official,
 		// Long cache retention is only sent to the official API by default;
 		// proxies opt in explicitly via `compat.supportsLongCacheRetention: true`.
 		supportsLongCacheRetention: official,
