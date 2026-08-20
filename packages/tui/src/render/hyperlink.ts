@@ -7,6 +7,7 @@
  */
 import * as os from "node:os";
 import * as url from "node:url";
+import * as path from "node:path";
 import { logger } from "@oh-my-pi/pi-utils";
 import type { TspSpan } from "@oh-my-pi/pi-wire";
 import { span } from "../native/describe";
@@ -149,6 +150,12 @@ export function fileUriForTerminal(
 		// model-authored path can carry; the row keeps its text and loses the link.
 		return undefined;
 	}
+}
+
+/** Build the OSC 8 target for `filePath` on this terminal. */
+function buildFileUri(filePath: string, opts?: { line?: number; col?: number }): string | undefined {
+	const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(filePath);
+	return fileUriForTerminal(absolutePath, opts, TERMINAL.id);
 }
 
 /**
@@ -298,11 +305,11 @@ export function fileLinkSpan(filePath: string, displayText: string, s = "path"):
  * encoding so the OSC 8 target is always a valid `file://` URL. A path Node
  * cannot encode renders as `displayText` with no link.
  *
- * @param filePath - Filesystem path
+ * @param filePath - Filesystem path (absolute or cwd-relative)
  * @param displayText - Text to render as the hyperlink anchor (may contain ANSI codes)
  * @param opts - Optional line/col position (custom handlers use query params; VS Code uses a path suffix)
  */
 export function fileHyperlink(filePath: string, displayText: string, opts?: { line?: number; col?: number }): string {
-	const uri = fileUriForTerminal(filePath, opts, TERMINAL.id);
+	const uri = buildFileUri(filePath, opts);
 	return uri ? wrapHyperlink(uri, displayText) : displayText;
 }

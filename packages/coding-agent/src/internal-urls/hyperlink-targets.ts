@@ -4,7 +4,20 @@ import * as url from "node:url";
 import { TERMINAL } from "@oh-my-pi/pi-tui";
 import { fileUriForTerminal } from "@oh-my-pi/pi-tui/render/hyperlink";
 import { extractUriScheme, InternalUrlRouter, parseInternalUrl, type ResolveContext } from "./index";
+import { parseSel } from "../tools/read-selector";
 import { expandPath } from "../tools/path-utils";
+
+function splitLocalPathSelector(href: string): { filePath: string; suffix: string } {
+	const suffixIndex = href.search(/[?#]/);
+	const pathPart = suffixIndex < 0 ? href : href.slice(0, suffixIndex);
+	const suffix = suffixIndex < 0 ? "" : href.slice(suffixIndex);
+	const selectorIndex = pathPart.lastIndexOf(":");
+	if (selectorIndex < 0) return { filePath: pathPart, suffix };
+	const selector = pathPart.slice(selectorIndex + 1);
+	return parseSel(selector).kind === "none"
+		? { filePath: pathPart, suffix }
+		: { filePath: pathPart.slice(0, selectorIndex), suffix };
+}
 
 /**
  * Resolve Markdown link destinations (as extracted by `getMarkdownLinkUrls`)
@@ -38,11 +51,10 @@ export async function resolveMarkdownLinkHrefs(
 					sourcePath = located;
 					suffix = parseInternalUrl(href).hash;
 				} else {
-					const suffixIndex = href.search(/[?#]/);
-					const filePath = suffixIndex < 0 ? href : href.slice(0, suffixIndex);
-					suffix = suffixIndex < 0 ? "" : href.slice(suffixIndex);
+					const { filePath, suffix: localSuffix } = splitLocalPathSelector(href);
+					suffix = localSuffix;
 					const decoded =
-						extractUriScheme(href) === "file" ? url.fileURLToPath(href) : decodeURIComponent(filePath);
+						extractUriScheme(filePath) === "file" ? url.fileURLToPath(filePath) : decodeURIComponent(filePath);
 					sourcePath = path.resolve(context?.cwd ?? process.cwd(), expandPath(decoded));
 				}
 				const stat = await fs.stat(sourcePath);
