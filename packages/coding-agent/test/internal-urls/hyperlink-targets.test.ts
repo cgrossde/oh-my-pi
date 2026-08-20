@@ -213,6 +213,17 @@ describe("resource links in chat markdown", () => {
 		]).toEqual([]);
 	});
 
+	it("resolves read-style colon line ranges to absolute file targets", async () => {
+		const file = path.join(tempDir, "src", "my file.ts");
+		await Bun.write(file, "export const value = 1;");
+		const href = "src/my%20file.ts:579-584";
+		const targets = await resolveMarkdownLinkHrefs(terminalCaps.getMarkdownLinkUrls(`[Source](${href})`), {
+			cwd: tempDir,
+		});
+
+		expect(targets.get(href)).toBe(url.pathToFileURL(file).href);
+	});
+
 	it("leaves missing, escaping, remote, and non-link destinations unexpanded", async () => {
 		await Bun.write(path.join(tempDir, "local", "report.json"), "{}");
 		await Bun.write(path.join(tempDir, "outside.json"), "{}");

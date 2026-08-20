@@ -6,6 +6,7 @@
  * permits it. Falls back to plain text when disabled.
  */
 import * as url from "node:url";
+import * as path from "node:path";
 import type { TspSpan } from "@oh-my-pi/pi-wire";
 import { span } from "../native/describe";
 import { setTerminalHyperlinks, TERMINAL, type TerminalId } from "../terminal-capabilities";
@@ -71,7 +72,8 @@ export function fileUriForTerminal(
 
 /** Build the OSC 8 target for `filePath` on this terminal. */
 function buildFileUri(filePath: string, opts?: { line?: number; col?: number }): string {
-	return fileUriForTerminal(filePath, opts, TERMINAL.id);
+	const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(filePath);
+	return fileUriForTerminal(absolutePath, opts, TERMINAL.id);
 }
 
 /**
@@ -212,12 +214,11 @@ export function fileLinkSpan(filePath: string, displayText: string, s = "path"):
  *
  * Returns `displayText` unchanged when hyperlinks are disabled or when
  * the text already contains an OSC 8 sequence (prevents double-wrapping).
- * Relative paths resolve against the current working directory before URI
- * encoding so the OSC 8 target is always a valid `file://` URL.
+ * Relative paths are resolved against cwd so the OSC 8 target is always absolute.
  *
- * @param filePath - Filesystem path
+ * @param filePath - Filesystem path (absolute or cwd-relative)
  * @param displayText - Text to render as the hyperlink anchor (may contain ANSI codes)
- * @param opts - Optional line/col position appended as `?line=N&col=M` query params
+ * @param opts - Optional source location; used only by terminals with a valid position-aware URI form
  */
 export function fileHyperlink(filePath: string, displayText: string, opts?: { line?: number; col?: number }): string {
 	return wrapHyperlink(buildFileUri(filePath, opts), displayText);
