@@ -139,6 +139,7 @@ import { cfgDefaultThinkingLevel, cfgRetryFallbackChains } from "../../session/s
 import {
 	cfgStatusLineCompactThinkingLevel,
 	cfgStatusLineContextLine,
+	cfgStatusLineContextSoftLimit,
 	cfgStatusLineLeftSegments,
 	cfgStatusLinePreset,
 	cfgStatusLineRightSegments,
@@ -376,7 +377,7 @@ export class SelectorController {
 								transparent: cfgStatusLineTransparent.get(settings),
 								compactThinkingLevel: cfgStatusLineCompactThinkingLevel.get(settings),
 								contextLine: cfgStatusLineContextLine.get(settings),
-								segmentOptions: cfgStatusLineSegmentOptions.get(settings),
+								contextSoftLimit: cfgStatusLineContextSoftLimit.get(settings),
 								...previewSettings,
 							});
 							this.ctx.ui.requestRender();
@@ -409,7 +410,7 @@ export class SelectorController {
 								transparent: cfgStatusLineTransparent.get(settings),
 								compactThinkingLevel: cfgStatusLineCompactThinkingLevel.get(settings),
 								contextLine: cfgStatusLineContextLine.get(settings),
-								segmentOptions: cfgStatusLineSegmentOptions.get(settings),
+								contextSoftLimit: cfgStatusLineContextSoftLimit.get(settings),
 							});
 							this.ctx.ui.requestRender();
 						},

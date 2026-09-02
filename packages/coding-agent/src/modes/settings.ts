@@ -223,6 +223,19 @@ export const cfgStatusLineContextLine = register({
 	},
 });
 
+export const cfgStatusLineContextSoftLimit = register({
+	id: "statusLine.contextSoftLimit",
+	type: "number",
+	default: 200_000,
+	ui: {
+		tab: "appearance",
+		group: "Status Line",
+		label: "Context Soft Limit",
+		description:
+			"Presentation-only token budget; after it is exceeded, the status line shows the model's actual context window and turns red. Set to 0 to disable.",
+	},
+});
+
 export const cfgStatusLineSessionAccent = register({
 	id: "statusLine.sessionAccent",
 	type: "boolean",

@@ -60,6 +60,8 @@ export interface StatusLineSettings {
 	 *  usage. `embedded` moves configured context segments into the annotated
 	 *  gauge as percentage and window labels. Box composer only. */
 	contextLine?: ContextLineMode;
+	/** Presentation-only context budget; 0 or undefined uses the model window. */
+	contextSoftLimit?: number;
 }
 
 export type EffectiveStatusLineSettings = Required<
@@ -144,6 +146,10 @@ export interface SegmentContext {
 	};
 	/** Context usage percent, or null when unknown (e.g. right after compaction). */
 	contextPercent: number | null;
+	/** Actual model/provider capacity; display contextWindow may be the soft budget. */
+	actualContextWindow?: number;
+	/** True after usage crosses the configured presentation-only soft limit. */
+	contextSoftLimitExceeded?: boolean;
 	contextTokens: number;
 	contextWindow: number;
 	autoCompactEnabled: boolean;

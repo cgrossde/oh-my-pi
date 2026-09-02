@@ -589,6 +589,7 @@ export interface StatusLinePreviewSettings {
 	sessionAccent?: boolean;
 	transparent?: boolean;
 	compactThinkingLevel?: boolean;
+	contextSoftLimit?: number;
 }
 
 export interface SettingsCallbacks {
@@ -1620,6 +1621,18 @@ export class SettingsSelectorComponent implements Component {
 					contextLine: this.#context.settings.get("statusLine.contextLine") as ContextLineMode,
 				});
 			};
+		} else if (def.path === "statusLine.contextSoftLimit") {
+			onPreview = value => {
+				const contextSoftLimit = Number(value);
+				if (Number.isFinite(contextSoftLimit)) {
+					this.#callbacks.onStatusLinePreview?.({ contextSoftLimit });
+				}
+			};
+			onPreviewCancel = () => {
+				this.#callbacks.onStatusLinePreview?.({
+					contextSoftLimit: this.#context.settings.get("statusLine.contextSoftLimit") as number,
+				});
+			};
 		} else if (def.path === "snapcompact.shape") {
 			const shapePreview = new SnapcompactShapePreview(currentValue, {
 				model: this.#context.model,
@@ -1886,6 +1899,7 @@ export class SettingsSelectorComponent implements Component {
 			separator: this.#context.settings.get("statusLine.separator") as StatusLineSeparatorStyle,
 			sessionAccent: this.#context.settings.get("statusLine.sessionAccent") as boolean,
 			transparent: this.#context.settings.get("statusLine.transparent") as boolean,
+			contextSoftLimit: this.#context.settings.get("statusLine.contextSoftLimit") as number,
 		};
 		this.#callbacks.onStatusLinePreview?.(statusLineSettings);
 	}

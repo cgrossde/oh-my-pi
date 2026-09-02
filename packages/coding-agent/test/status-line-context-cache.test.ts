@@ -27,6 +27,7 @@ import { StatusLineTestComponents } from "./helpers/status-line";
 
 import {
 	cfgStatusLineContextLine,
+	cfgStatusLineContextSoftLimit,
 	cfgStatusLineLeftSegments,
 	cfgStatusLinePreset,
 	cfgStatusLineRightSegments,
@@ -279,9 +280,10 @@ describe("StatusLineComponent context breakdown", () => {
 			leftSegments: ["context_pct"],
 			rightSegments: [],
 			separator: "powerline-thin",
+			contextSoftLimit: 0,
 		});
 
-		// 5000 / 272000 → 1.8%, window formatted as 272K (matches the footer gauge).
+		// The explicit zero disables the presentation-only soft budget.
 		const plain = comp.getTopBorder(80).content.replaceAll(/\x1b\[[0-9;]*m/g, "");
 		expect(plain).toContain("1.8%/272K");
 	});
@@ -297,6 +299,7 @@ describe("StatusLineComponent context breakdown", () => {
 			leftSegments: ["context_pct"],
 			rightSegments: [],
 			separator: "powerline-thin",
+			contextSoftLimit: 0,
 		});
 
 		const plain = comp.getTopBorder(80).content.replaceAll(/\x1b\[[0-9;]*m/g, "");
@@ -320,6 +323,83 @@ describe("StatusLineComponent context breakdown", () => {
 		const plain = comp.getTopBorder(80).content.replaceAll(/\x1b\[[0-9;]*m/g, "");
 		expect(plain).toContain("5K/?");
 		expect(plain).not.toContain("0.0%/0");
+	});
+	it("uses the soft budget before it is crossed", () => {
+		const { session } = makeSession({
+			messages: [userMessage("hi"), assistantMessage("done")],
+			usage: { tokens: 80_000, contextWindow: 1_000_000, percent: 8 },
+		});
+		const comp = new StatusLineComponent(session, statusLineHost);
+		comp.updateSettings({
+			preset: "custom",
+			leftSegments: ["context_pct"],
+			rightSegments: [],
+			separator: "powerline-thin",
+		});
+
+		const plain = comp.getTopBorder(80).content.replaceAll(/\x1b\[[0-9;]*m/g, "");
+		expect(plain).toContain("40.0%/200K");
+		expect(plain).not.toContain("8.0%/1M");
+	});
+
+	it("switches to the actual window and turns red after crossing the soft budget", () => {
+		const { session } = makeSession({
+			messages: [userMessage("hi"), assistantMessage("done")],
+			usage: { tokens: 210_000, contextWindow: 1_000_000, percent: 21 },
+		});
+		const comp = new StatusLineComponent(session, statusLineHost);
+		comp.updateSettings({
+			preset: "custom",
+			leftSegments: ["pi", "context_pct"],
+			rightSegments: ["session_name"],
+			separator: "none",
+			sessionAccent: false,
+			contextLine: "embedded",
+			contextSoftLimit: 200_000,
+		});
+
+		const border = comp.getTopBorder(100).content;
+		const plain = border.replaceAll(/\x1b\[[0-9;]*m/g, "");
+		expect(plain).toContain("21%");
+		expect(plain).toContain("1M");
+		expect(border).toContain(theme.getFgAnsi("error"));
+	});
+
+	it("keeps a smaller actual window instead of displaying an oversized soft budget", () => {
+		const { session } = makeSession({
+			messages: [userMessage("hi"), assistantMessage("done")],
+			usage: { tokens: 64_000, contextWindow: 128_000, percent: 50 },
+		});
+		const comp = new StatusLineComponent(session, statusLineHost);
+		comp.updateSettings({
+			preset: "custom",
+			leftSegments: ["context_pct"],
+			rightSegments: [],
+			separator: "powerline-thin",
+			contextSoftLimit: 200_000,
+		});
+
+		const plain = comp.getTopBorder(80).content.replaceAll(/\x1b\[[0-9;]*m/g, "");
+		expect(plain).toContain("50.0%/128K");
+		expect(plain).not.toContain("32.0%/200K");
+	});
+
+	it("uses the model window when the soft budget is disabled", () => {
+		const { session } = makeSession({
+			messages: [userMessage("hi"), assistantMessage("done")],
+			usage: { tokens: 80_000, contextWindow: 1_000_000, percent: 8 },
+		});
+		const comp = new StatusLineComponent(session, statusLineHost);
+		comp.updateSettings({
+			preset: "custom",
+			leftSegments: ["context_pct"],
+			rightSegments: [],
+			separator: "powerline-thin",
+			contextSoftLimit: 0,
+		});
+
+		const plain = comp.getTopBorder(80).content.replaceAll(/\x1b\[[0-9;]*m/g, "");
+		expect(plain).toContain("8.0%/1M");
 	});
 
 	it("splits the gap gauge into used (accent) and unused (border) portions", () => {
@@ -374,6 +454,7 @@ describe("StatusLineComponent context breakdown", () => {
 		cfgStatusLineLeftSegments.override(settings, ["pi", "context_pct"]);
 		cfgStatusLineRightSegments.override(settings, ["context_total", "session_name"]);
 		cfgStatusLineContextLine.override(settings, "embedded");
+		cfgStatusLineContextSoftLimit.override(settings, 0);
 
 		try {
 			const comp = statusLines.track(new StatusLineComponent(session, statusLineHost));
@@ -391,6 +472,7 @@ describe("StatusLineComponent context breakdown", () => {
 			expect(windowIndex).toBeGreaterThan(compactionIndex);
 			expect(plain.indexOf("1M", windowIndex + 1)).toBe(-1);
 		} finally {
+			cfgStatusLineContextSoftLimit.clearOverride(settings);
 			cfgStatusLineContextLine.clearOverride(settings);
 			cfgStatusLineRightSegments.clearOverride(settings);
 			cfgStatusLineLeftSegments.clearOverride(settings);
@@ -411,6 +493,7 @@ describe("StatusLineComponent context breakdown", () => {
 		cfgStatusLineLeftSegments.override(settings, ["pi", "context_pct"]);
 		cfgStatusLineRightSegments.override(settings, ["session_name"]);
 		cfgStatusLineContextLine.override(settings, "embedded");
+		cfgStatusLineContextSoftLimit.override(settings, 0);
 
 		try {
 			const comp = statusLines.track(new StatusLineComponent(session, statusLineHost));
@@ -421,6 +504,7 @@ describe("StatusLineComponent context breakdown", () => {
 			expect(plain).toContain("8%");
 			expect(plain).toContain("1M");
 		} finally {
+			cfgStatusLineContextSoftLimit.clearOverride(settings);
 			cfgStatusLineContextLine.clearOverride(settings);
 			cfgStatusLineRightSegments.clearOverride(settings);
 			cfgStatusLineLeftSegments.clearOverride(settings);

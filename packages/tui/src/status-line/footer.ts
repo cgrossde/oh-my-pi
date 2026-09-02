@@ -10,10 +10,13 @@ import { sanitizeStatusText } from "../chrome/shared";
 import { formatMetric } from "../components/metric";
 import { formatBillingSummary } from "./metrics";
 import {
+	DEFAULT_CONTEXT_SOFT_LIMIT,
 	formatContextUsage,
 	getContextUsageLevel,
 	getContextUsageThemeColor,
 	getContextUsageTone,
+	hasExceededContextSoftLimit,
+	resolveContextDisplayWindow,
 } from "../chrome/context-thresholds";
 import type { TspProps, TspSpan } from "@oh-my-pi/pi-wire";
 import type { NativeNode } from "../native/node";
@@ -277,9 +280,12 @@ export class FooterComponent implements Component {
 		// Calculate context usage from session (handles compaction correctly).
 		// After compaction, tokens are unknown until the next LLM response.
 		const contextUsage = this.session.getContextUsage();
-		const contextWindow = contextUsage?.contextWindow ?? state.model?.contextWindow ?? 0;
+		const actualContextWindow = contextUsage?.contextWindow ?? state.model?.contextWindow ?? 0;
 		const contextTokens = contextUsage?.tokens ?? 0;
-		const contextPercentValue = contextWindow > 0 ? (contextUsage?.percent ?? 0) : null;
+		const softLimit = this.session.contextSoftLimit ?? DEFAULT_CONTEXT_SOFT_LIMIT;
+		const contextWindow = resolveContextDisplayWindow(contextTokens, actualContextWindow, softLimit);
+		const contextPercentValue = contextWindow > 0 ? (contextUsage ? (contextTokens / contextWindow) * 100 : 0) : null;
+		const contextSoftLimitExceeded = hasExceededContextSoftLimit(contextTokens, actualContextWindow, softLimit);
 
 		// Replace home directory with ~
 		let pwd = shortenPath(getProjectDir());
@@ -321,6 +327,7 @@ export class FooterComponent implements Component {
 		// Show billing summary with subscription and premium-request indicators
 		const usingSubscription = state.model ? this.session.modelRegistry.isUsingOAuth(state.model) : false;
 		const { auto: autoIcon } = theme.icon;
+		const autoIndicator = this.#autoCompactEnabled && autoIcon ? ` ${autoIcon}` : "";
 		const billing = formatBillingSummary(
 			{ cost: totalCost, usingSubscription, premiumRequests: totalPremiumRequests, fractionDigits: 3 },
 			theme,
@@ -328,10 +335,11 @@ export class FooterComponent implements Component {
 		if (billing) statsParts.push(billing);
 		// Colorize context percentage based on usage
 		let contextPercentStr: string;
-		const autoIndicator = this.#autoCompactEnabled && autoIcon ? ` ${autoIcon}` : "";
 		const contextPercentDisplay = `${formatContextUsage(contextPercentValue, contextWindow, contextTokens)}${autoIndicator}`;
 		if (contextUsage && contextPercentValue !== null) {
-			const color = getContextUsageThemeColor(getContextUsageLevel(contextPercentValue, contextWindow));
+			const color = getContextUsageThemeColor(
+				getContextUsageLevel(contextPercentValue, contextWindow, contextSoftLimitExceeded),
+			);
 			contextPercentStr =
 				color === "statusLineContext" ? contextPercentDisplay : theme.fg(color, contextPercentDisplay);
 		} else {

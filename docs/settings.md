@@ -836,6 +836,7 @@ statusLine:
   separator: powerline-thin
   transparent: false
   showHookStatus: true
+  contextSoftLimit: 200000 # 0 uses the model's actual window
 
 terminal:
   showImages: true
@@ -858,6 +859,7 @@ tui:
 | `statusLine.sessionAccent`    | boolean | `true`           | Tint the editor border with the session color.                            |
 | `statusLine.transparent`      | boolean | `false`          | Use the terminal background for the status line.                          |
 | `statusLine.showHookStatus`   | boolean | `true`           | Show hook status messages.                                                |
+| `statusLine.contextSoftLimit` | number | `200000`         | Presentation-only token budget; after it is exceeded, the status line shows the model's actual context window and turns red. `0` disables the soft budget. |
 | `terminal.showImages`         | boolean | `true`           | Render images inline (when the terminal supports it).                     |
 | `images.autoResize`           | boolean | `true`           | Resize large images for model compatibility.                              |
 | `images.blockImages`          | boolean | `false`          | Never send images to providers.                                           |

@@ -358,6 +358,7 @@ import {
 	cfgStartupQuiet,
 	cfgStatusLineCompactThinkingLevel,
 	cfgStatusLineContextLine,
+	cfgStatusLineContextSoftLimit,
 	cfgStatusLineLeftSegments,
 	cfgStatusLinePreset,
 	cfgStatusLineRightSegments,
@@ -456,6 +457,7 @@ const cfgLiveUiSettings = combine({
 	"statusLine.segmentOptions": cfgStatusLineSegmentOptions,
 	"statusLine.compactThinkingLevel": cfgStatusLineCompactThinkingLevel,
 	"statusLine.contextLine": cfgStatusLineContextLine,
+	"statusLine.contextSoftLimit": cfgStatusLineContextSoftLimit,
 	"git.enabled": cfgGitEnabled,
 	"advisor.enabled": cfgAdvisorEnabled,
 	"advisor.maxNotesPerUpdate": cfgAdvisorMaxNotesPerUpdate,
@@ -2764,6 +2766,7 @@ export class InteractiveMode implements InteractiveModeContext {
 			);
 			return false;
 		}
+		this.#syncStatusLineSettings();
 		setSessionTerminalTitle(this.sessionManager.getSessionName(), this.sessionManager.getCwd());
 		this.statusLine.applyCwdChange();
 		return true;
@@ -3599,6 +3602,7 @@ export class InteractiveMode implements InteractiveModeContext {
 			segmentOptions: cfgStatusLineSegmentOptions.get(settings),
 			compactThinkingLevel: cfgStatusLineCompactThinkingLevel.get(settings),
 			contextLine: cfgStatusLineContextLine.get(settings),
+			contextSoftLimit: cfgStatusLineContextSoftLimit.get(settings),
 		});
 	}
 	syncComposerShape(): void {

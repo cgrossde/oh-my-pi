@@ -72,6 +72,8 @@ export interface FooterSession {
 	getContextUsage: StatusLineSession["getContextUsage"];
 	modelRegistry: Pick<StatusLineSession["modelRegistry"], "isUsingOAuth">;
 	sessionManager: { getEntries(): readonly { type: string; message?: AgentMessage }[] };
+	/** Presentation-only context budget for legacy footer rendering. */
+	contextSoftLimit?: number;
 }
 
 /**

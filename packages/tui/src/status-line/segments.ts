@@ -837,7 +837,7 @@ const contextPctSegment: StatusLineSegment = {
 		const pct = ctx.contextPercent;
 		const window = ctx.contextWindow;
 
-		const color = getContextUsageThemeColor(getContextUsageLevel(pct ?? 0, window));
+		const color = getContextUsageThemeColor(getContextUsageLevel(pct ?? 0, window, ctx.contextSoftLimitExceeded));
 		// Async-compaction indicator: pulse the auto icon while a background
 		// speculation runs, hold it in accent once a result is armed.
 		let autoIcon = "";

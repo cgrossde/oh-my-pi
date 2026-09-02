@@ -35,6 +35,14 @@ import {
 	type CodexResetUsageSnapshot,
 	detectCodexResetFireworks,
 } from "../overlays/codex-reset-fireworks";
+import {
+	DEFAULT_CONTEXT_SOFT_LIMIT,
+	getContextMeterThresholds,
+	getContextUsageLevel,
+	getContextUsageTone,
+	hasExceededContextSoftLimit,
+	resolveContextDisplayWindow,
+} from "../chrome/context-thresholds";
 import { canReuseCachedPr, createPrCacheContext, isSamePrCacheContext, type PrCacheContext } from "./git-utils";
 import { summarizeUsageResetCredits } from "../overlays/usage-display";
 import { getPreset } from "./presets";
@@ -42,7 +50,7 @@ import { describeSegment, renderSegment, type SegmentContext } from "./segments"
 import type { TspMeterMark, TspProps } from "@oh-my-pi/pi-wire";
 import type { NativeNode, NativeUiEvent } from "../native/node";
 import { col, node, span } from "../native/describe";
-import { getContextMeterThresholds } from "../chrome/context-thresholds";
+
 import { isNativeRendering } from "../native/state";
 import { getSeparator } from "./separators";
 import type {
@@ -2432,22 +2440,27 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 			tokensPerSecond: this.#getTokensPerSecond(),
 		};
 
-		let contextWindow = state.model?.contextWindow ?? this.session.model?.contextWindow ?? 0;
+		const modelContextWindow = state.model?.contextWindow ?? this.session.model?.contextWindow ?? 0;
 		const breakdown = this.getCachedContextBreakdown();
 		let contextTokens = breakdown.usedTokens;
-		contextWindow = breakdown.contextWindow || contextWindow;
-		let contextPercent: number | null =
-			contextWindow > 0 && !this.#contextUsageCache?.percentUnknown
-				? (breakdown.usedTokens / contextWindow) * 100
+		let actualContextWindow = breakdown.contextWindow || modelContextWindow;
+		let reportedContextPercent: number | null =
+			actualContextWindow > 0 && !this.#contextUsageCache?.percentUnknown
+				? (breakdown.usedTokens / actualContextWindow) * 100
 				: null;
 		// Collab guest: context comes from the host's state frames — the local
 		// replica does no accounting of its own.
 		const collabState = this.#collabStatus?.stateOverride;
 		if (collabState?.contextUsage) {
-			contextWindow = collabState.contextUsage.contextWindow || contextWindow;
+			actualContextWindow = collabState.contextUsage.contextWindow || actualContextWindow;
 			contextTokens = collabState.contextUsage.tokens ?? contextTokens;
-			contextPercent = collabState.contextUsage.percent ?? contextPercent;
+			reportedContextPercent = collabState.contextUsage.percent ?? reportedContextPercent;
 		}
+		const softLimit = this.#resolveSettings().contextSoftLimit ?? DEFAULT_CONTEXT_SOFT_LIMIT;
+		const contextSoftLimitExceeded = hasExceededContextSoftLimit(contextTokens, actualContextWindow, softLimit);
+		const contextWindow = resolveContextDisplayWindow(contextTokens, actualContextWindow, softLimit);
+		const contextPercent =
+			contextWindow > 0 && reportedContextPercent !== null ? (contextTokens / contextWindow) * 100 : null;
 
 		const shouldResolveActiveRepo = this.#gitEnabled() && (includePath || includeGit || includePr);
 		const projectDir = getProjectDir();
@@ -2499,6 +2512,8 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 			contextPercent,
 			contextTokens,
 			contextWindow,
+			actualContextWindow,
+			contextSoftLimitExceeded,
 			autoCompactEnabled: this.#autoCompactEnabled,
 			compactionSpeculation,
 			speculationBlinkOn: this.#speculationBlinkOn,
@@ -3138,7 +3153,9 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 		const sessionName =
 			effectiveSettings.sessionAccent !== false ? this.session.sessionManager?.getSessionName() : undefined;
 		const accentHex = sessionName ? getSessionAccentHex(sessionName, theme.sessionAccentInputs) : undefined;
-		const usedColor = getSessionAccentAnsi(accentHex) ?? theme.getFgAnsi("borderAccent");
+		const overflowColor = theme.getFgAnsi("error");
+		const baseUsedColor = getSessionAccentAnsi(accentHex) ?? theme.getFgAnsi("borderAccent");
+		const usedColor = ctx.contextSoftLimitExceeded ? overflowColor : baseUsedColor;
 		const horizontal = theme.boxRound.horizontal;
 		const mode = effectiveSettings.contextLine ?? "embedded";
 		const pct = ctx.contextPercent;
@@ -3184,15 +3201,25 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 		let speculationIdx = -1;
 		let thresholdIdx = -1;
 		if ((mode === "annotated" || mode === "embedded") && ctx.autoCompactEnabled && gapWidth >= 8) {
-			const boundaries = this.#compactionBoundaries(ctx.contextWindow);
+			const actualWindow = ctx.actualContextWindow ?? ctx.contextWindow;
+			const boundaries = this.#compactionBoundaries(actualWindow);
 			if (boundaries) {
+				const displayPercentFor = (actualPercent: number): number | null => {
+					const displayPercent =
+						actualWindow > 0 ? (actualPercent * actualWindow) / ctx.contextWindow : actualPercent;
+					return displayPercent >= 0 && displayPercent <= 100 ? displayPercent : null;
+				};
 				const cellFor = (percent: number) =>
 					Math.min(scaleWidth - 1, Math.max(0, Math.round((percent / 100) * scaleWidth)));
-				thresholdIdx = cellFor(boundaries.thresholdPercent);
+				const thresholdDisplayPercent = displayPercentFor(boundaries.thresholdPercent);
+				if (thresholdDisplayPercent !== null) thresholdIdx = cellFor(thresholdDisplayPercent);
 				// null = no background speculation will run (async disabled or the
 				// first available method is local/instant) — no tick to show.
-				if (boundaries.speculationPercent !== null) speculationIdx = cellFor(boundaries.speculationPercent);
-				if (speculationIdx === thresholdIdx) speculationIdx = -1; // threshold wins the cell
+				if (boundaries.speculationPercent !== null) {
+					const speculationDisplayPercent = displayPercentFor(boundaries.speculationPercent);
+					if (speculationDisplayPercent !== null) speculationIdx = cellFor(speculationDisplayPercent);
+				}
+				if (speculationIdx === thresholdIdx && speculationIdx >= 0) speculationIdx = -1; // threshold wins the cell
 			}
 		}
 
@@ -3221,7 +3248,6 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 		const speculationGlyph = theme.symbol("context.speculation");
 		const thresholdGlyph = theme.symbol("context.compaction");
 		const speculationColor = theme.getFgAnsi("muted");
-		const overflowColor = theme.getFgAnsi("error");
 		const rawAccentHex = accentHex ?? theme.getColorHex("borderAccent");
 		let dimmedAccent = this.#dimmedAccentMemo;
 		if (dimmedAccent?.sourceHex !== rawAccentHex) {
@@ -3243,7 +3269,7 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 			let text: string;
 			if (i >= percentStart && i < percentEnd) {
 				const end = Math.min(percentEnd, gapWidth);
-				color = percentOverflow ? overflowColor : usedColor;
+				color = percentOverflow || ctx.contextSoftLimitExceeded ? overflowColor : usedColor;
 				text = percentLabel.slice(i - percentStart, end - percentStart);
 				i = end;
 			} else if (i === thresholdIdx) {
