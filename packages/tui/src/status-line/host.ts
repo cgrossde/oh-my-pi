@@ -131,6 +131,8 @@ export interface FooterSession {
 	 * folds in usage carried by completed `task` tool results.
 	 */
 	sessionManager: { getUsageStatistics: StatusLineSession["sessionManager"]["getUsageStatistics"] };
+	/** Presentation-only context budget for legacy footer rendering. */
+	contextSoftLimit?: number;
 }
 
 /**

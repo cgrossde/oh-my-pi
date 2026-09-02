@@ -140,10 +140,10 @@ import { cfgDefaultThinkingLevel, cfgRetryFallbackChains, cfgSessionWorktreeScop
 import {
 	cfgStatusLineCompactThinkingLevel,
 	cfgStatusLineContextLine,
+	cfgStatusLineContextSoftLimit,
 	cfgStatusLineLeftSegments,
 	cfgStatusLinePreset,
 	cfgStatusLineRightSegments,
-	cfgStatusLineSegmentOptions,
 	cfgStatusLineSeparator,
 	cfgStatusLineSessionAccent,
 	cfgStatusLineShowHookStatus,
@@ -372,7 +372,7 @@ export class SelectorController {
 								transparent: cfgStatusLineTransparent.get(settings),
 								compactThinkingLevel: cfgStatusLineCompactThinkingLevel.get(settings),
 								contextLine: cfgStatusLineContextLine.get(settings),
-								segmentOptions: cfgStatusLineSegmentOptions.get(settings),
+								contextSoftLimit: cfgStatusLineContextSoftLimit.get(settings),
 								...previewSettings,
 							});
 							this.ctx.ui.requestRender();
@@ -405,7 +405,7 @@ export class SelectorController {
 								transparent: cfgStatusLineTransparent.get(settings),
 								compactThinkingLevel: cfgStatusLineCompactThinkingLevel.get(settings),
 								contextLine: cfgStatusLineContextLine.get(settings),
-								segmentOptions: cfgStatusLineSegmentOptions.get(settings),
+								contextSoftLimit: cfgStatusLineContextSoftLimit.get(settings),
 							});
 							this.ctx.ui.requestRender();
 						},

@@ -2,6 +2,7 @@ import { formatNumber } from "@oh-my-pi/pi-utils";
 import type { TspTone } from "@oh-my-pi/pi-wire";
 import type { ThemeColor } from "../theme/index";
 export type ContextUsageLevel = "normal" | "warning" | "purple" | "error";
+export const DEFAULT_CONTEXT_SOFT_LIMIT = 200_000;
 
 const CONTEXT_WARNING_PERCENT_THRESHOLD = 50;
 const CONTEXT_WARNING_TOKEN_THRESHOLD = 150_000;
@@ -27,8 +28,46 @@ function reachesThreshold(
 	const tokenPercentThreshold = (tokenThreshold / contextWindow) * 100;
 	return contextPercent >= Math.min(percentThreshold, tokenPercentThreshold);
 }
+/**
+ * Resolve the denominator used by the status-line display without changing the
+ * model's real context window. A configured soft limit is only a display budget
+ * while the current model can hold more; once usage crosses it, the real window
+ * becomes visible again.
+ */
+export function resolveContextDisplayWindow(
+	usedTokens: number,
+	contextWindow: number,
+	softLimit: number | undefined,
+): number {
+	if (!Number.isFinite(contextWindow) || contextWindow <= 0) return contextWindow;
+	if (!Number.isFinite(softLimit) || softLimit === undefined || softLimit <= 0) return contextWindow;
+	if (contextWindow <= softLimit || usedTokens > softLimit) return contextWindow;
+	return softLimit;
+}
 
-export function getContextUsageLevel(contextPercent: number, contextWindow: number): ContextUsageLevel {
+/** Whether the display has crossed a configured soft context budget. */
+export function hasExceededContextSoftLimit(
+	usedTokens: number,
+	contextWindow: number,
+	softLimit: number | undefined,
+): boolean {
+	return (
+		Number.isFinite(softLimit) &&
+		softLimit !== undefined &&
+		softLimit > 0 &&
+		Number.isFinite(contextWindow) &&
+		contextWindow > softLimit &&
+		usedTokens > softLimit
+	);
+}
+
+export function getContextUsageLevel(
+	contextPercent: number,
+	contextWindow: number,
+	softLimitExceeded = false,
+): ContextUsageLevel {
+	if (softLimitExceeded) return "error";
+
 	if (
 		reachesThreshold(contextPercent, contextWindow, CONTEXT_ERROR_PERCENT_THRESHOLD, CONTEXT_ERROR_TOKEN_THRESHOLD)
 	) {
