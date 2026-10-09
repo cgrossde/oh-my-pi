@@ -1392,7 +1392,7 @@ interface InlineStyleContext {
 }
 
 type ListToken = Token & {
-	items: Array<{ raw: string; tokens?: Token[] }>;
+	items: Array<{ raw: string; tokens?: Token[]; task?: boolean; checked?: boolean }>;
 	ordered: boolean;
 	start?: number;
 	loose: boolean;
@@ -3787,7 +3787,7 @@ export class Markdown implements Component {
 				continue;
 			}
 			const rowStart = lines.length;
-			const bullet = token.ordered ? `${startNumber + i}. ` : "- ";
+			const bullet = item.task ? (item.checked ? "☑ " : "☐ ") : token.ordered ? `${startNumber + i}. ` : "- ";
 			const firstPrefix = indent + this.#theme.listBullet(bullet);
 			// Continuation rows align under the item text, so the hang matches the
 			// actual bullet width (`10. ` is 4 cells, not 2).
